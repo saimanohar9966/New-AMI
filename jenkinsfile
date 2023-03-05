@@ -1,33 +1,63 @@
 pipeline {
     agent any
-
-    stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
     
-
-        stage('Fetch latest AMI') {
+    stages {
+        stage('Get Latest AMI') {
             steps {
                 script {
-                    def region = 'ap-south-1' // Change to your region
-                    def ami = awsUtil.getLatestAmi(region, 'Windows-base-*')
+                    // Import AWS SDK and define the AWSUtil class
+                    @Grab(group='com.amazonaws', module='aws-java-sdk-ec2', version='1.11.1036')
+                    import com.amazonaws.auth.AWSStaticCredentialsProvider
+                    import com.amazonaws.auth.BasicAWSCredentials
+                    import com.amazonaws.regions.Regions
+                    import com.amazonaws.services.ec2.AmazonEC2
+                    import com.amazonaws.services.ec2.AmazonEC2ClientBuilder
+                    import com.amazonaws.services.ec2.model.DescribeImagesRequest
+                    import com.amazonaws.services.ec2.model.Filter
+                    
+                    class AWSUtil {
+                        static def getLatestAmi(String region, String nameRegex) {
+                            def credentials = new check_latest_ami(System.getenv('AWS_ACCESS_KEY_ID'), System.getenv('AWS_SECRET_ACCESS_KEY'))
+                            def ec2Client = AmazonEC2ClientBuilder.standard()
+                                .withCredentials(new AWSStaticCredentialsProvider(credentials))
+                                .withRegion(Regions.valueOf(region))
+                                .build()
+                    
+                            def describeImagesRequest = new DescribeImagesRequest()
+                            describeImagesRequest.setFilters([
+                                new Filter().withName('name').withValues(nameRegex),
+                                new Filter().withName('state').withValues('available')
+                            ])
+                            describeImagesRequest.setMaxResults(1)
+                    
+                            def images = ec2Client.describeImages(describeImagesRequest).getImages()
+                            return images[0]
+                        }
+                    }
+                    
+                    // Get the latest AMI ID and store it in the 'AMI_ID' environment variable
+                    def awsUtil = new AWSUtil()
+                    def ami = awsUtil.getLatestAmi('ap-south-1', 'my-ami-name-regex')
                     env.AMI_ID = ami.id
                 }
             }
         }
-
-        stage('Apply Terraform') {
+        
+        stage('Terraform Init') {
             steps {
-                withCredentials([[$class: 'check_latest_ami', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-credentials', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                    dir('terraform') {
-                        sh 'terraform init'
-                        sh "terraform plan -var 'ami_id=${env.AMI_ID}'"
-                        sh "terraform apply -var 'ami_id=${env.AMI_ID}'"
-                    }
-                }
+                sh 'terraform init'
+            }
+        }
+        
+        stage('Terraform Plan') {
+            steps {
+                sh 'terraform plan -var="ami_id=${env.AMI_ID}"'
+            }
+        }
+        
+        stage('Terraform Apply') {
+            steps {
+                sh 'terraform apply -var="ami_id=${env.AMI_ID}" -auto-approve'
             }
         }
     }
