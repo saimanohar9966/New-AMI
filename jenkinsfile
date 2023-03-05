@@ -7,12 +7,39 @@ pipeline {
                 checkout scm
             }
         }
+         import com.amazonaws.auth.AWSStaticCredentialsProvider
+import com.amazonaws.auth.BasicAWSCredentials
+import com.amazonaws.regions.Regions
+import com.amazonaws.services.ec2.AmazonEC2
+import com.amazonaws.services.ec2.AmazonEC2ClientBuilder
+import com.amazonaws.services.ec2.model.DescribeImagesRequest
+import com.amazonaws.services.ec2.model.Filter
+
+class AWSUtil {
+    static def getLatestAmi(String region, String nameRegex) {
+        def credentials = new BasicAWSCredentials(System.getenv('AWS_ACCESS_KEY_ID'), System.getenv('AWS_SECRET_ACCESS_KEY'))
+        def ec2Client = AmazonEC2ClientBuilder.standard()
+            .withCredentials(new AWSStaticCredentialsProvider(check_latest_ami))
+            .withRegion(Regions.valueOf(region))
+            .build()
+
+        def describeImagesRequest = new DescribeImagesRequest()
+        describeImagesRequest.setFilters([
+            new Filter().withName('name').withValues(nameRegex),
+            new Filter().withName('state').withValues('available')
+        ])
+        describeImagesRequest.setMaxResults(1)
+
+        def images = ec2Client.describeImages(describeImagesRequest).getImages()
+        return images[0]
+    }
+}
 
         stage('Fetch latest AMI') {
             steps {
                 script {
                     def region = 'ap-south-1' // Change to your region
-                    def ami = awsUtil.getLatestAmi(region, 'my-ami-name-regex')
+                    def ami = awsUtil.getLatestAmi(region, 'Windows-base-*')
                     env.AMI_ID = ami.id
                 }
             }
@@ -20,7 +47,7 @@ pipeline {
 
         stage('Apply Terraform') {
             steps {
-                withCredentials([[$class: '	check_latest_ami', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-credentials', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                withCredentials([[$class: 'check_latest_ami', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-credentials', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     dir('terraform') {
                         sh 'terraform init'
                         sh "terraform plan -var 'ami_id=${env.AMI_ID}'"
