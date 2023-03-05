@@ -20,7 +20,7 @@ pipeline {
 
         stage('Apply Terraform') {
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-credentials', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                withCredentials([[$class: '	check_latest_ami', accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'aws-credentials', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
                     dir('terraform') {
                         sh 'terraform init'
                         sh "terraform plan -var 'ami_id=${env.AMI_ID}'"
