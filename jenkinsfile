@@ -14,8 +14,12 @@ pipeline {
                         script: "aws ec2 describe-images --region ${env.AWS_REGION} --owners amazon --filters 'Name=name,Values=${env.AMI_NAME_PATTERN}' --query 'Images[*].[ImageId, CreationDate]' --output text | sort -k2 -r | head -n1 | awk '{print \$1}'",
                         returnStdout: true
                     ).trim()
-                    echo "Latest AMI ID is: ${amiId}"
-                    env.AMI_ID = amiId // fixed typo, should be amiId instead of ami.id
+                    if (amiId.empty) {
+                        error('Latest AMI not found. Exiting pipeline.')
+                    } else {
+                        echo "Latest AMI ID is: ${amiId}"
+                        env.AMI_ID = amiId
+                    }
                 }
             }
         }
@@ -28,13 +32,13 @@ pipeline {
         
         stage('Terraform Plan') {
             steps {
-                sh "terraform plan -var='ami_id=${env.AMI_ID}'" // fixed quotes to use single quotes on the outside and double quotes on the inside
+                sh "terraform plan -var='ami_id=${env.AMI_ID}'"
             }
         }
         
         stage('Terraform Apply') {
             steps {
-                sh "terraform apply -var='ami_id=${env.AMI_ID}' " // fixed quotes to use single quotes on the outside and double quotes on the inside
+                sh "terraform apply -var='ami_id=${env.AMI_ID}' -auto-approve"
             }
         }
     }
