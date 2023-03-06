@@ -34,7 +34,7 @@ pipeline {
         
         stage('Terraform Apply') {
             steps {
-                sh "terraform apply -var='ami_id=${env.AMI_ID}' -auto-approve" // fixed quotes to use single quotes on the outside and double quotes on the inside
+                sh "terraform apply -var='ami_id=${env.AMI_ID}' " // fixed quotes to use single quotes on the outside and double quotes on the inside
             }
         }
     }
