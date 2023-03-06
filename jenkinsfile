@@ -15,13 +15,12 @@ pipeline {
                         returnStdout: true
                     ).trim()
                     echo "Latest AMI ID is: ${amiId}"
-                    env.AMI_ID = ami.id
+                    env.AMI_ID = amiId // fixed typo, should be amiId instead of ami.id
                 }
             }
         }
-    }
-}
-stage('Terraform Init') {
+
+        stage('Terraform Init') {
             steps {
                 sh 'terraform init'
             }
@@ -29,16 +28,14 @@ stage('Terraform Init') {
         
         stage('Terraform Plan') {
             steps {
-                sh 'terraform plan -var="ami_id=${env.AMI_ID}" '
+                sh "terraform plan -var='ami_id=${env.AMI_ID}'" // fixed quotes to use single quotes on the outside and double quotes on the inside
             }
         }
         
         stage('Terraform Apply') {
             steps {
-                sh 'terraform apply -var="ami_id=${env.AMI_ID}"  -auto-approve'
+                sh "terraform apply -var='ami_id=${env.AMI_ID}' -auto-approve" // fixed quotes to use single quotes on the outside and double quotes on the inside
             }
         }
     }
 }
-
-
