@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    parameters {
+        string(name: 'INSTANCE_ID', description: 'ID of the EC2 instance to check the AMI ID')
+    }
     environment {
         AWS_REGION = 'ap-south-1'
         AMI_NAME_PATTERN = 'Windows_Server-2019-English-Full-Base*'
@@ -29,7 +32,7 @@ pipeline {
             steps {
                 script {
                     def instanceAmiId = sh(
-                        script: "aws ec2 describe-instances --instance-ids i-09e39fcc21f381e09 --query 'Reservations[*].Instances[*].[ImageId]' --output text",
+                        script: "aws ec2 describe-instances --instance-ids ${params.INSTANCE_ID} --query 'Reservations[*].Instances[*].[ImageId]' --output text",
                         returnStdout: true
                     ).trim()
                     if (instanceAmiId == env.AMI_ID) {
@@ -43,7 +46,7 @@ pipeline {
             }
         }
 
-        stage('Terraform Init') {
+        stage('Terraform stage') {
             when {
                 expression {
                     return currentBuild.result != 'ABORTED'
@@ -51,35 +54,10 @@ pipeline {
             }
             steps {
                 sh 'terraform init'
+                sh "terraform plan -var='ami_id=${env.AMI_ID}'"
+                sh "terraform apply -var='ami_id=${env.AMI_ID}' -auto-approve"
             }
         }
 
-        stage('Terraform Plan') {
-            when {
-                expression {
-                    return currentBuild.result != 'ABORTED'
-                }
-            }
-            steps {
-                // Use the ANSI color plugin to add color to the Terraform output
-                ansiColor('xterm') {
-                    sh "terraform plan -var='ami_id=${env.AMI_ID}'"
-                }
-            }
-        }
-
-        stage('Terraform Apply') {
-            when {
-                expression {
-                    return currentBuild.result != 'ABORTED'
-                }
-            }
-            steps {
-                // Use the ANSI color plugin to add color to the Terraform output
-                ansiColor('xterm') {
-                    sh "terraform apply -var='ami_id=${env.AMI_ID}' -auto-approve"
-                }
-            }
-        }
     }
 }
