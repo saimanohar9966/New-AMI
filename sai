@@ -2,7 +2,7 @@ pipeline {
     agent any
     environment {
         AWS_REGION = 'ap-south-1'
-        AMI_NAME_PATTERN = 'Windows_Server-2022-English-Full-Base*'
+        AMI_NAME_PATTERN = 'Windows_Server-2019-English-Full-Base*'
         AWS_ACCESS_KEY_ID = credentials('check_latest_ami')
         AWS_SECRET_ACCESS_KEY = credentials('check_latest_ami')
     }
@@ -43,43 +43,16 @@ pipeline {
             }
         }
 
-        stage('Terraform Init') {
+        stage('Terraform stage') {
             when {
                 expression {
                     return currentBuild.result != 'ABORTED'
                 }
             }
-            steps {
                 sh 'terraform init'
-            }
+                sh "terraform plan -var='ami_id=${env.AMI_ID}'"
+                sh "terraform apply -var='ami_id=${env.AMI_ID}' -auto-approve"
         }
 
-        stage('Terraform Plan') {
-            when {
-                expression {
-                    return currentBuild.result != 'ABORTED'
-                }
-            }
-            steps {
-                // Use the ANSI color plugin to add color to the Terraform output
-                ansiColor('xterm') {
-                    sh "terraform plan -var='ami_id=${env.AMI_ID}'"
-                }
-            }
-        }
-
-        stage('Terraform Apply') {
-            when {
-                expression {
-                    return currentBuild.result != 'ABORTED'
-                }
-            }
-            steps {
-                // Use the ANSI color plugin to add color to the Terraform output
-                ansiColor('xterm') {
-                    sh "terraform apply -var='ami_id=${env.AMI_ID}' -auto-approve"
-                }
-            }
-        }
     }
 }
