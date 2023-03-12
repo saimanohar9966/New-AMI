@@ -1,3 +1,12 @@
+pipeline {
+    agent any
+    environment {
+        AWS_REGION = 'ap-south-1'
+        AMI_NAME_PATTERN = 'Windows_Server-2019-English-Full-Base*'
+        AWS_ACCESS_KEY_ID = credentials('check_latest_ami')
+        AWS_SECRET_ACCESS_KEY = credentials('check_latest_ami')
+    }
+
 stages {
     stage('Check Latest AMI') {
         steps {
@@ -20,7 +29,7 @@ stages {
         steps {
             script {
                 def instanceAmiId = sh(
-                    script: "aws ec2 describe-instances --instance-ids ${env.INSTANCE_ID} --query 'Reservations[*].Instances[*].[ImageId]' --output text",
+                    script: "aws ec2 describe-instances --instance-ids i-09e39fcc21f381e09 --query 'Reservations[*].Instances[*].[ImageId]' --output text",
                     returnStdout: true
                 ).trim()
                 if (env.AMI_ID == instanceAmiId) {
