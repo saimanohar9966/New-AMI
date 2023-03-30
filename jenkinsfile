@@ -26,11 +26,10 @@ pipeline {
 
         stage('Terraform Init') {
             steps {
-                try {
                     sh 'terraform init'
                     sh "terraform plan -var='ami_id=${env.AMI_ID}'"
                     sh "terraform apply -var='ami_id=${env.AMI_ID}'"
-                } catch (error) {
+                 catch (error) {
                     def errorMsg = "Error asking for approval: EOF"
                     def errorStr = error.toString().toLowerCase()
                     if (errorStr.contains(errorMsg)) {
