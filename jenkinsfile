@@ -6,7 +6,9 @@ pipeline {
         AWS_ACCESS_KEY_ID = credentials('check_latest_ami')
         AWS_SECRET_ACCESS_KEY = credentials('check_latest_ami')
     }
-    stage ('Check Latest AMI') { 
+    stages {
+        stage('Check Latest AMI') {
+            steps {
                 script {
                     def amiId = sh(
                         script: "aws ec2 describe-images --region ${env.AWS_REGION} --owners amazon --filters 'Name=name,Values=${env.AMI_NAME_PATTERN}' --query 'Images[*].[ImageId, CreationDate]' --output text | sort -k2 -r | head -n1 | awk '{print \$1}'",
@@ -19,24 +21,32 @@ pipeline {
                         env.AMI_ID = amiId
                     }
                 }
-            
-        
+            }
+        }
 
         stage('Terraform Init') {
-                    sh 'terraform init'
-                    sh "terraform plan -var='ami_id=${env.AMI_ID}'"
-                    sh "terraform apply -var='ami_id=${env.AMI_ID}'"
-        }        
+            steps {
+                sh 'terraform init'
+                sh "terraform plan -var='ami_id=${env.AMI_ID}'"
+                sh "terraform apply -var='ami_id=${env.AMI_ID}'"
+            }
+        }
+    }
+    try {
+        catchError {
+            echo 'Caught exception'
+            throw new Exception('Something went wrong')
+        }
     } catch (error) {
-         if (errorMessage.contains("Error asking for approval: EOF")) {
-             echo 'Ignoring error and marking build as successful'
-             currentBuild.result = 'SUCCESS'
-             return
+        def errorMessage = "Error asking for approval: EOF"
+        def errorStr = error.toString().toLowerCase()
+        if (errorStr.contains(errorMessage.toLowerCase())) {
+            echo "Ignoring error message: ${errorMessage}"
+            currentBuild.result = 'SUCCESS'
         } else {
-            error(err.getMessage())
+            echo "Error message not found: ${errorStr}"
+            error(error.getMessage())
             currentBuild.result = 'FAILURE'
-            return
         }
-        }
-
+    }
 }
