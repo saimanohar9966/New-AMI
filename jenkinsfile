@@ -7,7 +7,7 @@ pipeline {
         AWS_SECRET_ACCESS_KEY = credentials('check_latest_ami')
     }
     stages {
-        stage('Check Latest AMI') { 
+        stage ('Check Latest AMI') { 
             steps {
                 script {
                     def amiId = sh(
@@ -23,6 +23,7 @@ pipeline {
                 }
             }
         }
+
         stage('Terraform Init') {
             steps {
                 try {
