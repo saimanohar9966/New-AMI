@@ -34,7 +34,7 @@ pipeline {
         }        
     }
     } catch (error) {
-        if if (errorMessage.contains("Error asking for approval: EOF")) {
+         if (errorMessage.contains("Error asking for approval: EOF")) {
              echo 'Ignoring error and marking build as successful'
              currentBuild.result = 'SUCCESS'
              return
