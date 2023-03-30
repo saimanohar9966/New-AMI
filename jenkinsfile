@@ -22,44 +22,43 @@ pipeline {
                     }
                 }
             }
-        }
-
-        stage('Terraform Init') {
-            steps {
-                sh 'terraform init'
-            }
-        }
-        
-        stage('Terraform Plan') {
-            steps {
-                // Use the ANSI color plugin to add color to the Terraform output
-                ansiColor('xterm') {
-                    sh "terraform plan -var='ami_id=${env.AMI_ID}'"
+            try {
+                stage('Terraform Init') {
+                    steps {
+                        sh 'terraform init'
+                    }
+                }
+                
+                stage('Terraform Plan') {
+                    steps {
+                        // Use the ANSI color plugin to add color to the Terraform output
+                        ansiColor('xterm') {
+                            sh "terraform plan -var='ami_id=${env.AMI_ID}'"
+                        }
+                    }
+                }
+                
+                stage('Terraform Apply') {
+                    steps {
+                        // Use the ANSI color plugin to add color to the Terraform output
+                        ansiColor('xterm') {
+                            sh "terraform apply -var='ami_id=${env.AMI_ID}'"
+                        }
+                    }
+                }
+            } catch (error) {
+                def errorMsg = "Error asking for approval: EOF"
+                def errorStr = error.toString().toLowerCase()
+                if (errorStr.contains(errorMsg)) {
+                    echo "Ignoring error message: ${errorMsg}"
+                    currentBuild.result = 'SUCCESS'
+                    return
+                } else {
+                    echo "Error message not found: ${errorStr}"
+                    currentBuild.result = 'FAILURE'
+                    return
                 }
             }
         }
-        
-        stage('Terraform Apply') {
-            steps {
-                // Use the ANSI color plugin to add color to the Terraform output
-                ansiColor('xterm') {
-                    sh "terraform apply -var='ami_id=${env.AMI_ID}'"
-                }
-
-            }
-        }
-    } catch (error) {
-    def errorMsg = "Error asking for approval: EOF"
-    def errorStr = error.toString().toLowerCase()
-    if (errorStr.contains(errorMsg)) {
-        echo "Ignoring error message: ${errorMsg}"
-        currentBuild.result = 'SUCCESS'
-        return
-    } else {
-        echo "Error message not found: ${errorStr}"
-        currentBuild.result = 'FAILURE'
-        return
     }
 }
-}
-
