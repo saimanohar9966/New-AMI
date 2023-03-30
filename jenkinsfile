@@ -48,6 +48,18 @@ pipeline {
 
             }
         }
+    } catch (error) {
+    def errorMsg = "Error asking for approval: EOF"
+    def errorStr = error.toString().toLowerCase()
+    if (errorStr.contains(errorMsg)) {
+        echo "Ignoring error message: ${errorMsg}"
+        currentBuild.result = 'SUCCESS'
+        return
+    } else {
+        echo "Error message not found: ${errorStr}"
+        currentBuild.result = 'FAILURE'
+        return
     }
+}
 }
 
