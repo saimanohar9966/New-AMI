@@ -26,28 +26,11 @@ pipeline {
 
         stage('Terraform Init') {
             steps {
-                sh 'terraform init'
-            }
-        }
-        
-        stage('Terraform Plan') {
-            steps {
-                // Use the ANSI color plugin to add color to the Terraform output
-                ansiColor('xterm') {
+                try {
+                    sh 'terraform init'
                     sh "terraform plan -var='ami_id=${env.AMI_ID}'"
-                }
-            }
-        }
-        
-        stage('Terraform Apply') {
-            steps {
-                    // Use the ANSI color plugin to add color to the Terraform output
-                    ansiColor('xterm') {
-                        sh "terraform apply -var='ami_id=${env.AMI_ID}'"
-                    }
-            }
-        }
-    }                  catch (error) {
+                    sh "terraform apply -var='ami_id=${env.AMI_ID}'"
+                } catch (error) {
                     def errorMsg = "Error asking for approval: EOF"
                     def errorStr = error.toString().toLowerCase()
                     if (errorStr.contains(errorMsg)) {
@@ -60,4 +43,7 @@ pipeline {
                         return
                     }
                 }
+            }
+        }
+    }
 }
