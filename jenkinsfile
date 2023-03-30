@@ -6,6 +6,7 @@ pipeline {
         AWS_ACCESS_KEY_ID = credentials('check_latest_ami')
         AWS_SECRET_ACCESS_KEY = credentials('check_latest_ami')
     }
+    try {
     stages {
         stage('Check Latest AMI') {
             steps {
@@ -31,6 +32,7 @@ pipeline {
                     sh "terraform apply -var='ami_id=${env.AMI_ID}'"
             }
         }        
+    }
     } catch (error) {
         if if (errorMessage.contains("Error asking for approval: EOF")) {
              echo 'Ignoring error and marking build as successful'
@@ -42,4 +44,5 @@ pipeline {
             return
         }
         }
-    }
+
+}
