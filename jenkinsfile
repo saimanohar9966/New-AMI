@@ -45,7 +45,9 @@ pipeline {
                     ansiColor('xterm') {
                         sh "terraform apply -var='ami_id=${env.AMI_ID}'"
                     }
-                 catch (error) {
+            }
+        }
+    }                  catch (error) {
                     def errorMsg = "Error asking for approval: EOF"
                     def errorStr = error.toString().toLowerCase()
                     if (errorStr.contains(errorMsg)) {
@@ -58,7 +60,4 @@ pipeline {
                         return
                     }
                 }
-            }
-        }
-    }
 }
