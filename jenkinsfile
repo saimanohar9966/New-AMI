@@ -7,7 +7,7 @@ pipeline {
         AWS_SECRET_ACCESS_KEY = credentials('check_latest_ami')
     }
     stages {
-        stage('Check Latest AMI') {
+        stage('Check Latest AMI') { 
             steps {
                 script {
                     def amiId = sh(
@@ -23,30 +23,25 @@ pipeline {
                 }
             }
         }
-
         stage('Terraform Init') {
             steps {
-                sh 'terraform init'
-                sh "terraform plan -var='ami_id=${env.AMI_ID}'"
-                sh "terraform apply -var='ami_id=${env.AMI_ID}'"
+                try {
+                    sh 'terraform init'
+                    sh "terraform plan -var='ami_id=${env.AMI_ID}'"
+                    sh "terraform apply -var='ami_id=${env.AMI_ID}'"
+                } catch (error) {
+                    def errorMessage = "Error asking for approval: EOF"
+                    def errorStr = error.toString().toLowerCase()
+                    if (errorStr.contains(errorMessage.toLowerCase())) {
+                        echo "Ignoring error message: ${errorMessage}"
+                        currentBuild.result = 'SUCCESS'
+                    } else {
+                        echo "Error message not found: ${errorStr}"
+                        error(error.getMessage())
+                        currentBuild.result = 'FAILURE'
+                    }
+                }
             }
-        }
-    }
-    try {
-        catchError {
-            echo 'Caught exception'
-            throw new Exception('Something went wrong')
-        }
-    } catch (error) {
-        def errorMessage = "Error asking for approval: EOF"
-        def errorStr = error.toString().toLowerCase()
-        if (errorStr.contains(errorMessage.toLowerCase())) {
-            echo "Ignoring error message: ${errorMessage}"
-            currentBuild.result = 'SUCCESS'
-        } else {
-            echo "Error message not found: ${errorStr}"
-            error(error.getMessage())
-            currentBuild.result = 'FAILURE'
         }
     }
 }
