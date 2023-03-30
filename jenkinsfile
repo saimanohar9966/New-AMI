@@ -41,12 +41,11 @@ pipeline {
         
         stage('Terraform Apply') {
             steps {
-                try {
                     // Use the ANSI color plugin to add color to the Terraform output
                     ansiColor('xterm') {
                         sh "terraform apply -var='ami_id=${env.AMI_ID}'"
                     }
-                } catch (error) {
+                 catch (error) {
                     def errorMsg = "Error asking for approval: EOF"
                     def errorStr = error.toString().toLowerCase()
                     if (errorStr.contains(errorMsg)) {
