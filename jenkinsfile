@@ -43,7 +43,7 @@ pipeline {
             steps {
                 // Use the ANSI color plugin to add color to the Terraform output
                 ansiColor('xterm') {
-                    sh "terraform apply -var='ami_id=${env.AMI_ID}' -auto-approve"
+                    sh "terraform apply -var='ami_id=${env.AMI_ID}'"
                 }
 
             }
